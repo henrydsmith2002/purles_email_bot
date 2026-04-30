@@ -18,6 +18,7 @@ using json = nlohmann::json;
 #include "gmail_browser_interaction_fns.h"
 
 
+// function lists the Ids of unread messages. Needs accessToken, working on it
 vector<string> listUnreadMessageIds(const string& accessToken) {
     string url = 
         "https://gmail.googleapis.com/gmail/v1/users/me/messages"
@@ -37,24 +38,4 @@ vector<string> listUnreadMessageIds(const string& accessToken) {
     }
 
     return ids;
-}
-
-
-string buildAuthorizationUrl(const string& clientId) {
-    const string authEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
-    const string redirectUri = "http://127.0.0.1:8080/";
-    const string scope = "https://www.googleapis.com/auth/gmail.modify";
-
-    ostringstream url;
-
-    url << authEndpoint
-        << "?client_id=" << urlEncode(clientId)
-        << "&redirect_uri=" << urlEncode(redirectUri)
-        << "&response_type=code"
-        << "&scope=" << urlEncode(scope)
-        << "&access_type=offline"
-        << "&prompt=consent"
-        << "&login_hint=" << urlEncode("pearlemailbot1433@gmail.com");
-
-    return url.str();
 }

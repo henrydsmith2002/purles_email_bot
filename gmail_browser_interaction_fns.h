@@ -17,7 +17,7 @@ using json = nlohmann::json;
 #include "include/httplib.h"
 
 
-
+// writes the callback for nmemb?
 static size_t writeCallback(void* contents, size_t size, size_t nmemb, void* userp) {
     size_t totalSize = size * nmemb;
     string* response = static_cast<string*>(userp);
@@ -25,6 +25,7 @@ static size_t writeCallback(void* contents, size_t size, size_t nmemb, void* use
     return totalSize;
 }
 
+// initializes the curl. Needs access token
 string httpGet (const string& url, const string& accessToken) {
     CURL* curl = curl_easy_init();
     if (!curl) {
@@ -62,6 +63,7 @@ string httpGet (const string& url, const string& accessToken) {
 }
 
 
+// encodes the url?
 string urlEncode(const string& value) {
     ostringstream escaped;
     escaped.fill('0');
@@ -79,6 +81,7 @@ string urlEncode(const string& value) {
 }
 
 
+// reads in the json file, especially the client_secret
 json readJsonFile(const string& path) {
     ifstream file(path);
 
@@ -92,6 +95,8 @@ json readJsonFile(const string& path) {
 }
 
 
+// makes it so that the cpp file creates a little server and waits for the authentification code
+// from the url pasted into the browser
 string waitForAuthorizationCode() {
     httplib::Server server;
     string authorizationCode;
@@ -144,6 +149,28 @@ string waitForAuthorizationCode() {
     return authorizationCode;
 }
 
+// fn builds the authorization URL from the clien_secret file info
+string buildAuthorizationUrl(const string& clientId) {
+    const string authEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
+    const string redirectUri = "http://127.0.0.1:8080/";
+    const string scope = "https://www.googleapis.com/auth/gmail.modify";
+
+    ostringstream url;
+
+    url << authEndpoint
+        << "?client_id=" << urlEncode(clientId)
+        << "&redirect_uri=" << urlEncode(redirectUri)
+        << "&response_type=code"
+        << "&scope=" << urlEncode(scope)
+        << "&access_type=offline"
+        << "&prompt=consent"
+        << "&login_hint=" << urlEncode("pearlemailbot1433@gmail.com");
+
+    return url.str();
+}
+
+
+// writes the http request
 string httpPostForm(
     const string& url,
     const vector<std::pair<string, string>>& fields
