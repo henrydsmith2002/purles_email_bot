@@ -19,6 +19,16 @@ int main() {
         cout << "\nAuthorization code received:" << endl;
         cout << code << endl;
 
+        string clientSecret = credentials.at("installed").at("client_secret").get<string>();
+
+        json tokens = exchangeCodeForTokens(code, clientId, clientSecret);
+
+        cout << tokens.dump(2) << endl;
+
+        string accessToken = tokens.at("access_token").get<string>();
+
+        vector<string> ids = listUnreadMessageIds(accessToken);
+
 
     } catch (const exception& e) {
         std::cerr << "Error: " << e.what() << "\n";
@@ -26,6 +36,7 @@ int main() {
     }
 
     return 0;
+}
 
 
 
@@ -50,4 +61,3 @@ int main() {
     //     return 1;
     // }
     // return 0;
-}
