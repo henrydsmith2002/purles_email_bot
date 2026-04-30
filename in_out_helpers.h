@@ -38,3 +38,23 @@ vector<string> listUnreadMessageIds(const string& accessToken) {
 
     return ids;
 }
+
+
+string buildAuthorizationUrl(const string& clientId) {
+    const string authEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
+    const string redirectUri = "http://127.0.0.1:8080/";
+    const string scope = "https://www.googleapis.com/auth/gmail.modify";
+
+    ostringstream url;
+
+    url << authEndpoint
+        << "?client_id=" << urlEncode(clientId)
+        << "&redirect_uri=" << urlEncode(redirectUri)
+        << "&response_type=code"
+        << "&scope=" << urlEncode(scope)
+        << "&access_type=offline"
+        << "&prompt=consent"
+        << "&login_hint=" << urlEncode("pearlemailbot1433@gmail.com");
+
+    return url.str();
+}
