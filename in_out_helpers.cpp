@@ -21,8 +21,9 @@ vector<string> listUnreadMessageIds(const string& accessToken) {
     }
 
     for (const auto& message : data["messages"]) {
-        ids.push_back(message.at("id").get<string>());
+        string unreadMessageId = message.at("id").get<string>();
+        ids.push_back(unreadMessageId);
+        cout << "unread message Id: " << unreadMessageId << endl;
     }
-
     return ids;
 }
