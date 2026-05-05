@@ -14,6 +14,7 @@ using std::endl;
 using std::exception;
 using std::string;
 using std::vector;
+using std::runtime_error;
 
 string httpGet(const string& url, const string& accessToken);
 string urlEncode(const string& value);

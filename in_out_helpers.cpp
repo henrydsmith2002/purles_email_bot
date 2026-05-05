@@ -70,3 +70,16 @@ vector<json> getEmailInfo(const string& accessToken, const vector<string>& ids) 
     }
     return emails_info;
 }
+
+
+void writeJsonFile(const string& path, const json& data) {
+    ofstream file(path);
+    if (!file.is_open()) {
+        throw runtime_error("Could not open file: " + path);
+    }
+    file << data.dump(2) << '\n';
+    if (!file) {
+        throw runtime_error("Could not write file: " + path);
+    }
+}
+

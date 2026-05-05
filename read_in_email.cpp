@@ -25,6 +25,8 @@ int main() {
 
         cout << tokens.dump(2) << endl;
 
+        writeJsonFile("credentials/token.json", tokens);
+
         string accessToken = tokens.at("access_token").get<string>();
 
         vector<string> ids = listUnreadMessageIds(accessToken);
