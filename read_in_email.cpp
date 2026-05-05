@@ -29,6 +29,13 @@ int main() {
 
         vector<string> ids = listUnreadMessageIds(accessToken);
 
+        vector<json> emails_info = getEmailInfo(accessToken, ids);
+
+        for (const json email_info : emails_info) {
+            cout << "info: " << endl;
+            cout << email_info << endl << endl;
+        }
+
 
     } catch (const exception& e) {
         std::cerr << "Error: " << e.what() << "\n";
@@ -37,27 +44,3 @@ int main() {
 
     return 0;
 }
-
-
-
-
-
-
-
-
-
-    // try {
-    //     curl_global_init(CURL_GLOBAL_DEFAULT);
-    //     string accessToken = "";
-    //     vector<string> ids = listUnreadMessageIds(accessToken);
-    //     cout << "Unread messages found: " << ids.size() << "\n";
-    //     for (const string& id: ids) {
-    //         cout << "Message ID: " << id << "\n";
-    //     }
-    //     curl_global_cleanup();
-    // } catch (const exception& e) {
-    //     cerr << "Error: " << e.what() << "\n";
-    //     curl_global_cleanup();
-    //     return 1;
-    // }
-    // return 0;
