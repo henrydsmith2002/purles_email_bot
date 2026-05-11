@@ -10,7 +10,6 @@ find_package(CURL REQUIRED)
 
 add_executable(read_email
     gmail_browser_interaction_fns.cpp
-    in_out_helpers.cpp
     read_in_email.cpp
 )
 
