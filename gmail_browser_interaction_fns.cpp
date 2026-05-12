@@ -7,6 +7,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <filesystem>
+#include <ctime>
 
 #include "include/httplib.h"
 
@@ -21,6 +22,10 @@ static size_t writeCallback(void* contents, size_t size, size_t nmemb, void* use
     string* response = static_cast<string*>(userp);
     response->append(static_cast<char*>(contents), totalSize);
     return totalSize;
+}
+
+long long currentUnixTime() {
+    return static_cast<long long>(std::time(nullptr));
 }
 
 string httpGet(const string& url, const string& accessToken) {
@@ -321,19 +326,59 @@ bool tokenFileExists(const string& path) {
     return std::filesystem::exists(path);
 }
 
+bool accessTokenIsValid(const json& tokens) {
+    if (!tokens.contains("access_token") || !tokens.contains("expires_at")) {return false;}
+    const long long safetyBufferSeconds = 60;
+    bool isValid = (currentUnixTime() < (tokens.at("expires_at").get<long long>() - safetyBufferSeconds));
+    return isValid;
+}
+
+json refreshAccessToken(
+    const string& refreshToken,
+    const string& clientId,
+    const string& clientSecret
+) {
+    string response = httpPostForm(
+        "https://oauth2.googleapis.com/token", 
+        {
+            {"client_id", clientId},
+            {"client_secret", clientSecret},
+            {"refresh_token", refreshToken},
+            {"grant_type", "refresh_token"}
+        }
+    );
+    return json::parse(response);
+}
+
 
 // This function takes in the credentials json and implementents everything to 
 // get a valid access token.
-string getValidAccessToken(const json& credentials) {
+string getValidAccessToken(const string& credentialsPath) {
     const string tokenPath = "credentials/token.json";
     if (tokenFileExists(tokenPath)) {
         cout << "Token file exists" << endl;
-        
+        json tokens = readJsonFile("tokenPath");
+        bool isTokenValid = accessTokenIsValid(tokens);
+        if (isTokenValid) {
+            return tokens.at("access_token").get<string>();
+        }
+        else {
+            cout << "Access token expired" << endl;
+            json credentials = readJsonFile(credentialsPath);
+            string clientId = credentials.at("installed").at("client_id").get<string>();
+            string clientSecret = credentials.at("installed").at("client_secret").get<string>();
+            string refreshToken = tokens.at("refresh_token").get<string>();
+            json newTokens = refreshAccessToken(refreshToken, clientId, clientSecret);
+            newTokens["refresh_token"] = refreshToken;
+            newTokens["expires_at"] = currentUnixTime() + newTokens.at("expires_in").get<int>();
+            writeJsonFile(tokenPath, newTokens);
+            return newTokens.at("access_token").get<string>();
+        }
     }
     else {
         cout << "token file does not exist, authorizing through browser" << endl;
     try {
-        json credentials = readJsonFile("credentials/client_secret_953867945298-3rtu9nrdplc6906j20c3tf1abhmt5bl5.apps.googleusercontent.com.json");
+        json credentials = readJsonFile(credentialsPath);
         string clientId =
             credentials.at("installed").at("client_id").get<string>();
         string authUrl = buildAuthorizationUrl(clientId);
@@ -344,12 +389,14 @@ string getValidAccessToken(const json& credentials) {
         cout << code << endl;
         string clientSecret = credentials.at("installed").at("client_secret").get<string>();
         json tokens = exchangeCodeForTokens(code, clientId, clientSecret);
+        tokens["expires_at"] = currentUnixTime() + tokens.at("expires_in").get<int>();
         cout << tokens.dump(2) << endl;
         writeJsonFile("credentials/token.json", tokens);
         string accessToken = tokens.at("access_token").get<string>();
         return accessToken;
         } catch (const exception& e) {
             std::cerr << "Error: " << e.what() << "\n";
+            return "";
         }
     }
 }

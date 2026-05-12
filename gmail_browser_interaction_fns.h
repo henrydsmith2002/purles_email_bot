@@ -20,6 +20,7 @@ using std::ofstream;
 string httpGet(const string& url, const string& accessToken);
 string urlEncode(const string& value);
 json readJsonFile(const string& path);
+long long currentUnixTime();
 
 vector<string> listUnreadMessageIds(const string& accessToken);
 vector<json> getEmailInfo(const string& accessToken, const vector<string>& ids);
@@ -33,4 +34,10 @@ json exchangeCodeForTokens(
     const string& clientId,
     const string& clientSecret
 );
-string getValidAccessToken(const json& credentials);
+bool accessTokenIsValid(const json& tokens);
+json refreshAccessToken(
+    const string& refreshToken,
+    const string& clientId,
+    const string& clientSecret
+);
+string getValidAccessToken(const string& credentialsPath);
