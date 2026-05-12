@@ -263,6 +263,79 @@ vector<string> listUnreadMessageIds(const string& accessToken) {
     return ids;
 }
 
+string base64Decode(const string& input) {
+    static const string base64Chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789+/";
+
+    string output;
+
+    int val = 0;
+    int bits = -8;
+
+    for (unsigned char c : input) {
+        if (std::isspace(c)) {
+            continue;
+        }
+
+        if (c == '=') {
+            break;
+        }
+
+        size_t index = base64Chars.find(c);
+
+        if (index == string::npos) {
+            throw runtime_error("Invalid character in base64 input");
+        }
+
+        val = (val << 6) + static_cast<int>(index);
+        bits += 6;
+
+        if (bits >= 0) {
+            output.push_back(static_cast<char>((val >> bits) & 0xFF));
+            bits -= 8;
+        }
+    }
+
+    return output;
+}
+
+
+string base64UrlDecode(string input) {
+    for (char& c : input) {
+        if (c == '-') {
+            c = '+';
+        } else if (c == '_') {
+            c = '/';
+        }
+    }
+    while (input.size() % 4 != 0) {
+        input += '=';
+    }
+    return base64Decode(input);
+}
+
+string extractEmailBody(const json& payload) {
+    if (
+        payload.contains("mimeType") &&
+        payload["mimeType"] == "text/plain" &&
+        payload.contains("body") &&
+        payload["body"].contains("data")
+     ) {
+        return base64UrlDecode(payload["body"]["data"].get<string>());
+    }
+    if (payload.contains("parts")) {
+        for (const auto& part : payload["parts"]) {
+            string result = extractEmailBody(part);
+            if (!result.empty()) {
+                return result;
+            }
+        }
+    }
+    return "";
+}
+
 vector<json> getEmailInfo(const string& accessToken, const vector<string>& ids) {
     vector<json> emails_info;
     if (ids.size() == 0) {return emails_info;}
@@ -276,6 +349,8 @@ vector<json> getEmailInfo(const string& accessToken, const vector<string>& ids) 
         string id = data.value("id", "");
         string threadId = data.value("threadId","");
         string snippet = data.value("snippet","");
+        string emailBody = extractEmailBody(data["payload"]);
+        email_info["body_text"] = emailBody;
         email_info["id"] = id;
         email_info["threadId"] = threadId;
         email_info["snippet"] = snippet;
@@ -288,7 +363,11 @@ vector<json> getEmailInfo(const string& accessToken, const vector<string>& ids) 
                 email_info["From"] = value;
             }   
             else if (name == "Reply-To") {
-                email_info["Reply-To"] = value;
+                if (email_info.contains("Reply-To")) {
+                    email_info["reply_to"] = email_info["Reply-To"];
+                    } else {
+                    email_info["reply_to"] = email_info.value("From", "");
+                    }
             }
             else if (name == "To") {
                 email_info["To"] = value;
@@ -298,6 +377,12 @@ vector<json> getEmailInfo(const string& accessToken, const vector<string>& ids) 
             }
             else if (name == "Date") {
                 email_info["Date"] = value;
+            }
+            else if (name == "Message-ID") {
+                email_info["Message-ID"] = value;
+            }
+            else if (name == "References") {
+                email_info["References"] = value;
             }
         }
         // push onto vector to return
@@ -357,7 +442,7 @@ string getValidAccessToken(const string& credentialsPath) {
     const string tokenPath = "credentials/token.json";
     if (tokenFileExists(tokenPath)) {
         cout << "Token file exists" << endl;
-        json tokens = readJsonFile("tokenPath");
+        json tokens = readJsonFile(tokenPath);
         bool isTokenValid = accessTokenIsValid(tokens);
         if (isTokenValid) {
             return tokens.at("access_token").get<string>();
@@ -377,7 +462,6 @@ string getValidAccessToken(const string& credentialsPath) {
     }
     else {
         cout << "token file does not exist, authorizing through browser" << endl;
-    try {
         json credentials = readJsonFile(credentialsPath);
         string clientId =
             credentials.at("installed").at("client_id").get<string>();
@@ -394,9 +478,5 @@ string getValidAccessToken(const string& credentialsPath) {
         writeJsonFile("credentials/token.json", tokens);
         string accessToken = tokens.at("access_token").get<string>();
         return accessToken;
-        } catch (const exception& e) {
-            std::cerr << "Error: " << e.what() << "\n";
-            return "";
-        }
     }
 }
