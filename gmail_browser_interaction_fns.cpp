@@ -363,11 +363,7 @@ vector<json> getEmailInfo(const string& accessToken, const vector<string>& ids) 
                 email_info["From"] = value;
             }   
             else if (name == "Reply-To") {
-                if (email_info.contains("Reply-To")) {
-                    email_info["reply_to"] = email_info["Reply-To"];
-                    } else {
-                    email_info["reply_to"] = email_info.value("From", "");
-                    }
+                email_info["Reply-To"] = value;
             }
             else if (name == "To") {
                 email_info["To"] = value;
@@ -384,6 +380,11 @@ vector<json> getEmailInfo(const string& accessToken, const vector<string>& ids) 
             else if (name == "References") {
                 email_info["References"] = value;
             }
+        }
+        if (email_info.contains("Reply-To")) {
+            email_info["reply_to"] = email_info["Reply-To"];
+        } else {
+            email_info["reply_to"] = email_info.value("From","");
         }
         // push onto vector to return
         emails_info.push_back(email_info);
